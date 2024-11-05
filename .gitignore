@@ -1,0 +1,14 @@
+.DS_Store
+.antProperties.xml
+.classpath
+.gradle/
+.idea/
+.project/
+.settings/
+bin/
+build/
+dist/
+gotools.iml
+gradle/
+gradlew
+gradlew.bat
