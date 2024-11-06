@@ -115,7 +115,7 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 				String text = next.getText();
 				if (text.equals("NULL")) {
 					try {
-						field.set(next, ClangToken.GLOBAL_COLOR);
+						field.set(next, ClangToken.CONST_COLOR);
 					} catch (Exception e) { }
 				}
 			}
