@@ -1,6 +1,11 @@
 package decompiler_extension;
 
 import javax.swing.*;
+import java.awt.Color;
+import java.lang.IllegalArgumentException;
+import java.lang.IllegalAccessException;
+import java.util.Iterator;
+import java.lang.reflect.Field;
 import ghidra.app.ExamplesPluginPackage;
 import ghidra.app.decompiler.DecompilerHighlightService;
 import ghidra.app.decompiler.*;
@@ -89,19 +94,35 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 	protected void locationChanged(ProgramLocation loc) {
 		if (loc instanceof DecompilerLocation) {
 			// NOTE: This is in the event queue. Gotta go fast or do it in another thread.
-			Msg.info(this, loc);
 			DecompileResults results = ((DecompilerLocation) loc).getDecompile();
 			if (results == null) {
 				return;
 			}
 			HighFunction hf = results.getHighFunction();
-			Msg.info(this, hf.getFunction().getName());
+			// Msg.info(this, hf.getFunction().getName());
 			// do stuff
 			DecompileData data = controller.getDecompileData();
-			Msg.info(this, data);
+			// Msg.info(this, data);
 			ClangTokenGroup tokens = data.getCCodeMarkup();
-			Msg.info(this, tokens);
-			controller.refreshDisplay(loc.getProgram(), currentLocation, null);
+			Iterator<ClangToken> it = tokens.tokenIterator(true);
+			Field field = null;
+			try {
+				field = ClangToken.class.getDeclaredField("syntax_type");
+			} catch (Exception e) { }
+			field.setAccessible(true);
+			while (it.hasNext()) {
+				ClangToken next = it.next();
+				String text = next.getText();
+				if (text.equals("NULL")) {
+					try {
+						field.set(next, ClangToken.GLOBAL_COLOR);
+					} catch (Exception e) { }
+				}
+			}
+			controller.setDecompileData(data);
+			// tokens.setHighlight(Color.GREEN);
+			// Msg.info(this, tokens);
+			// controller.refreshDisplay(loc.getProgram(), currentLocation, null);
 		}
 	}
 
