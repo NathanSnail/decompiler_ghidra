@@ -1,6 +1,7 @@
 package decompiler_extension;
 
 import javax.swing.*;
+import java.util.ArrayList;
 import java.awt.Color;
 import java.lang.IllegalArgumentException;
 import java.lang.IllegalAccessException;
@@ -92,40 +93,67 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 
 	@Override
 	protected void locationChanged(ProgramLocation loc) {
-		if (loc instanceof DecompilerLocation) {
-			// NOTE: This is in the event queue. Gotta go fast or do it in another thread.
-			DecompileResults results = ((DecompilerLocation) loc).getDecompile();
-			if (results == null) {
-				return;
-			}
-			HighFunction hf = results.getHighFunction();
-			// Msg.info(this, hf.getFunction().getName());
-			// do stuff
-			DecompileData data = controller.getDecompileData();
-			// Msg.info(this, data);
-			ClangTokenGroup tokens = data.getCCodeMarkup();
-			Iterator<ClangToken> it = tokens.tokenIterator(true);
-			Field field = null;
-			try {
-				field = ClangToken.class.getDeclaredField("syntax_type");
-			} catch (Exception e) { }
-			field.setAccessible(true);
-			while (it.hasNext()) {
-				ClangToken next = it.next();
-				String text = next.getText();
-				if (text.equals("NULL")) {
-					try {
-						field.set(next, ClangToken.CONST_COLOR);
-					} catch (Exception e) { }
-				}
-			}
-			controller.setDecompileData(data);
-			// tokens.setHighlight(Color.GREEN);
-			// Msg.info(this, tokens);
-			// controller.refreshDisplay(loc.getProgram(), currentLocation, null);
+		if (!(loc instanceof DecompilerLocation)) { return; }
+		// NOTE: This is in the event queue. Gotta go fast or do it in another thread.
+		DecompileResults results = ((DecompilerLocation) loc).getDecompile();
+		if (results == null) {
+			return;
 		}
+		HighFunction hf = results.getHighFunction();
+		// Msg.info(this, hf.getFunction().getName());
+		// do stuff
+		DecompileData data = controller.getDecompileData();
+		// Msg.info(this, data);
+		ClangTokenGroup tokens = data.getCCodeMarkup();
+		Iterator<ClangToken> it = tokens.tokenIterator(true);
+		Field field = null;
+		try {
+			field = ClangToken.class.getDeclaredField("syntax_type");
+		} catch (Exception e) { }
+		field.setAccessible(true);
+		boolean did_something = false;
+		String src_flat = "";
+		ArrayList<Integer> indexes = new ArrayList();
+		ArrayList<ClangToken> token_arr = new ArrayList();
+		Integer index = -1;
+		while (it.hasNext()) {
+			index++;
+			ClangToken next = it.next();
+			token_arr.add(next);
+			String text = next.getText();
+			src_flat += text;
+			for (int i = 0; i < text.length(); i++) {
+				indexes.add(index);
+			}
+			if (text.equals("NULL")) {
+				if (next.getSyntaxType() == ClangToken.CONST_COLOR) {
+					continue;
+				}
+				try {
+					field.set(next, ClangToken.CONST_COLOR);
+					did_something = true;
+				} catch (Exception e) { }
+			}
+		}
+		did_something = true;
+		String goal = "!= false";
+		int match = src_flat.indexOf(goal);
+		if (match != -1) {
+			int match_index = indexes.get(match);
+			Msg.info(this, token_arr.get(match_index));
+			Msg.info(this, token_arr.get(match_index + 1));
+			Msg.info(this, token_arr.get(match_index + 2));
+			Msg.info(this, token_arr.get(match_index - 1));
+			Msg.info(this, token_arr.get(match_index - 2));
+			((ClangTokenGroup)token_arr.get(match_index).Parent()).AddTokenGroup(new ClangToken(tokens, "cat2"));
+		}
+		if (did_something) {
+			controller.setDecompileData(data);
+		}
+		// tokens.setHighlight(Color.GREEN);
+		// Msg.info(this, tokens);
+		// controller.refreshDisplay(loc.getProgram(), currentLocation, null);
 	}
-
 
 	/**
 	 * If your plugin maintains configuration state, you must save that state information
