@@ -1,6 +1,8 @@
 package decompiler_extension;
 
 import javax.swing.*;
+import java.util.HashSet;
+import java.util.regex.*;
 import java.util.ArrayList;
 import java.awt.Color;
 import java.lang.IllegalArgumentException;
@@ -61,6 +63,7 @@ import ghidra.util.Msg;
 public class DecompilerExtensionPlugin extends ProgramPlugin {
 	private DockingAction programAction;
 	private DecompilerController controller;
+	private Pattern regex;
 
 	/**
 	  * Constructor
@@ -89,6 +92,7 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 	protected void init() {
 		DecompilerProvider service = (DecompilerProvider) tool.getService(DecompilerHighlightService.class);
 		controller = service.getController();
+		regex = Pattern.compile("if \\([^ ]+ == NULL\\) \\{([^ ]+) = \\(GameGlobal \\*\\)operator_new\\(0x1a0\\);");
 	}
 
 	@Override
@@ -136,16 +140,33 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 			}
 		}
 		did_something = true;
-		String goal = "!= false";
-		int match = src_flat.indexOf(goal);
-		if (match != -1) {
-			int match_index = indexes.get(match);
-			Msg.info(this, token_arr.get(match_index));
-			Msg.info(this, token_arr.get(match_index + 1));
-			Msg.info(this, token_arr.get(match_index + 2));
-			Msg.info(this, token_arr.get(match_index - 1));
-			Msg.info(this, token_arr.get(match_index - 2));
-			((ClangTokenGroup)token_arr.get(match_index).Parent()).AddTokenGroup(new ClangToken(tokens, "cat2"));
+		Msg.info(this, src_flat);
+		Matcher m = regex.matcher(src_flat);
+		while (m.find()) {
+			int start = m.start();
+			int end = m.end();
+			Msg.info(this, start);
+			Msg.info(this, end);
+			Msg.info(this, src_flat.substring(start, end));
+			int start_index = indexes.get(start);
+			int end_index = indexes.get(end);
+			ClangTokenGroup start_group = (ClangTokenGroup)token_arr.get(start_index).Parent();
+			ClangTokenGroup end_group = (ClangTokenGroup)token_arr.get(end_index).Parent();
+			ClangTokenGroup containing_group = CommonAncestor(start_group, end_group);
+			Field tok_field = null;
+			try {
+				tok_field = ClangTokenGroup.class.getDeclaredField("tokgroup");
+			} catch (Exception e) { }
+			try {
+				tok_field.set(containing_group, new ArrayList());
+			} catch (Exception e) { }
+			containing_group.AddTokenGroup(new ClangToken(tokens, "uninlined", ClangToken.KEYWORD_COLOR));
+			containing_group.AddTokenGroup(new ClangToken(tokens, " "));
+			containing_group.AddTokenGroup(new ClangToken(tokens, "ConstructGameGlobal", ClangToken.GLOBAL_COLOR));
+			containing_group.AddTokenGroup(new ClangToken(tokens, "(", ClangToken.DEFAULT_COLOR));
+			containing_group.AddTokenGroup(new ClangToken(tokens, m.group(1)));
+			containing_group.AddTokenGroup(new ClangToken(tokens, ")", ClangToken.DEFAULT_COLOR));
+			containing_group.AddTokenGroup(new ClangToken(tokens, ";", ClangToken.DEFAULT_COLOR));
 		}
 		if (did_something) {
 			controller.setDecompileData(data);
@@ -153,6 +174,20 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 		// tokens.setHighlight(Color.GREEN);
 		// Msg.info(this, tokens);
 		// controller.refreshDisplay(loc.getProgram(), currentLocation, null);
+	}
+
+	private ClangTokenGroup CommonAncestor(ClangTokenGroup a, ClangTokenGroup b) {
+		HashSet<ClangTokenGroup> set = new HashSet();
+		do {
+			set.add(a);
+			a = (ClangTokenGroup)a.Parent();
+		} while (a != null);
+		while (true) {
+			if (set.contains(b)) {
+				return b;
+			}
+			b = (ClangTokenGroup)b.Parent();
+		}
 	}
 
 	/**
