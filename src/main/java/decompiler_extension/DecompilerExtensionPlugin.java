@@ -113,7 +113,9 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 		Field field = null;
 		try {
 			field = ClangToken.class.getDeclaredField("syntax_type");
-		} catch (Exception e) { }
+		} catch (Exception e) {
+			Msg.error(this, e);
+		}
 		field.setAccessible(true);
 		boolean did_something = false;
 		String src_flat = "";
@@ -136,7 +138,9 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 				try {
 					field.set(next, ClangToken.CONST_COLOR);
 					did_something = true;
-				} catch (Exception e) { }
+				} catch (Exception e) {
+					Msg.error(this, e);
+				}
 			}
 		}
 		did_something = true;
@@ -156,16 +160,22 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 			Field tok_field = null;
 			try {
 				tok_field = ClangTokenGroup.class.getDeclaredField("tokgroup");
-			} catch (Exception e) { }
+			} catch (Exception e) {
+				Msg.error(this, e);
+			}
+			tok_field.setAccessible(true);
 			try {
 				tok_field.set(containing_group, new ArrayList());
-			} catch (Exception e) { }
+			} catch (Exception e) {
+				Msg.error(this, e);
+			}
 			containing_group.AddTokenGroup(new ClangToken(tokens, "uninlined", ClangToken.KEYWORD_COLOR));
 			containing_group.AddTokenGroup(new ClangToken(tokens, " "));
 			containing_group.AddTokenGroup(new ClangToken(tokens, "ConstructGameGlobal", ClangToken.GLOBAL_COLOR));
 			containing_group.AddTokenGroup(new ClangToken(tokens, "(", ClangToken.DEFAULT_COLOR));
+			containing_group.AddTokenGroup(new ClangToken(tokens, "&", ClangToken.DEFAULT_COLOR));
 			containing_group.AddTokenGroup(new ClangToken(tokens, m.group(1)));
-			containing_group.AddTokenGroup(new ClangToken(tokens, ")", ClangToken.DEFAULT_COLOR));
+			containing_group.AddTokenGroup(new ClangToken(tokens, ")", ClangToken.VARIABLE_COLOR));
 			containing_group.AddTokenGroup(new ClangToken(tokens, ";", ClangToken.DEFAULT_COLOR));
 		}
 		if (did_something) {

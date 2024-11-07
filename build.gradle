@@ -15,13 +15,5 @@
 // for the correction version of Gradle to use for the Ghidra installation you specify.
 
 //----------------------START "DO NOT MODIFY" SECTION------------------------------
-def ghidraInstallDir
-ghidraInstallDir = "/ghidra/"
-
-if (ghidraInstallDir) {
-	apply from: new File(ghidraInstallDir).getCanonicalPath() + "/support/buildExtension.gradle"
-}
-else {
-	throw new GradleException("GHIDRA_INSTALL_DIR is not defined!")
-}
+apply from: new File("/ghidra/").getCanonicalPath() + "/support/buildExtension.gradle"
 //----------------------END "DO NOT MODIFY" SECTION-------------------------------
