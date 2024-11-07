@@ -74,7 +74,7 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 		programAction = new DockingAction("Hello World", getName()) {
 			@Override
 			public void actionPerformed(ActionContext context) {
-				Msg.info(this, "Wah");
+				Msg.info(this, "I am enabled");
 			}
 		};
 		// Enable the action - by default actions are disabled.
@@ -143,15 +143,10 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 				}
 			}
 		}
-		did_something = true;
-		Msg.info(this, src_flat);
 		Matcher m = regex.matcher(src_flat);
 		while (m.find()) {
 			int start = m.start();
 			int end = m.end();
-			Msg.info(this, start);
-			Msg.info(this, end);
-			Msg.info(this, src_flat.substring(start, end));
 			int start_index = indexes.get(start);
 			int end_index = indexes.get(end);
 			ClangTokenGroup start_group = (ClangTokenGroup)token_arr.get(start_index).Parent();
@@ -177,6 +172,7 @@ public class DecompilerExtensionPlugin extends ProgramPlugin {
 			containing_group.AddTokenGroup(new ClangToken(tokens, m.group(1)));
 			containing_group.AddTokenGroup(new ClangToken(tokens, ")", ClangToken.VARIABLE_COLOR));
 			containing_group.AddTokenGroup(new ClangToken(tokens, ";", ClangToken.DEFAULT_COLOR));
+			did_something = true;
 		}
 		if (did_something) {
 			controller.setDecompileData(data);
